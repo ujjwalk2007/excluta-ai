@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>EXCLUTA AI</title>
+</head>
+<body>
+
+<h1>EXCLUTA AI 🤖</h1>
+
+<input id="input" placeholder="Ask anything">
+<button id="btn">Send</button>
+
+<p id="output"></p>
+
+<script>
+document.getElementById("btn").addEventListener("click", async function() {
+  console.log("clicked");
+
+  const msg = document.getElementById("input").value;
+
+  try {
+    const res = await fetch("http://localhost:3000/api/generate", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ message: msg })
+    });
+
+    const data = await res.json();
+
+    console.log("response:", data);
+
+    document.getElementById("output").innerText = data.reply;
+
+  } catch (err) {
+    console.error("ERROR:", err);
+  }
+});
+</script>
+
+</body>
+</html>
