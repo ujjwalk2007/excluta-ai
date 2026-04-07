@@ -162,8 +162,75 @@ app.post("/api/generate", async (req, res) => {
   try {
     const { message, history = [], fileContext = null } = req.body;
     
-    // CHECK: Agar image hai → Gemini use kar
-    const hasImage = fileContext && fileContext.imageBase64;
+    console.log("=== GENERATE CALLED ===");
+    console.log("Message:", message);
+    console.log("Has fileContext:", !!fileContext);
+    if (fileContext) {
+      console.log("Has imageBase64:", !!fileContext.imageBase64);
+      console.log("ImageBase64 length:", fileContext.imageBase64 ? fileContext.imageBase64.length : 0);
+    }
+    
+    // ✅ RULE 1: Agar IMAGE hai (base64 present) → GEMINI VISION
+    if (fileContext && fileContext.imageBase64 && fileContext.imageBase64.length > 100) {
+      console.log("📸 IMAGE detected! Using Gemini Vision...");
+      
+      const imageData = {
+        inlineData: {
+          data: fileContext.imageBase64,
+          mimeType: fileContext.mimeType || "image/png"
+        }
+      };
+      
+      const prompt = message || "Describe this image in detail. What do you see? Tell me everything.";
+      
+      const result = await geminiModel.generateContent([prompt, imageData]);
+      const reply = result.response.text();
+      
+      console.log("✅ Gemini replied!");
+      return res.json({ reply, model: "gemini-vision" });
+    }
+    
+    // ✅ RULE 2: Agar DOCUMENT hai (extractedText) → LLAMA
+    if (fileContext && fileContext.extractedText) {
+      console.log("📄 DOCUMENT detected! Using Llama...");
+      
+      const messages = [
+        { role: "system", content: systemPrompt },
+        ...history.map(m => ({ role: m.role, content: m.text })),
+        { role: "user", content: `Document content: ${fileContext.extractedText}\n\nUser question: ${message || "Summarize this"}` }
+      ];
+      
+      const completion = await groq.chat.completions.create({
+        messages: messages,
+        model: "llama-3.3-70b-versatile",
+        temperature: 0.7,
+      });
+      
+      return res.json({ reply: completion.choices[0].message.content, model: "llama" });
+    }
+    
+    // ✅ RULE 3: Sirf TEXT → LLAMA
+    console.log("💬 TEXT only! Using Llama...");
+    
+    const messages = [
+      { role: "system", content: systemPrompt },
+      ...history.map(m => ({ role: m.role, content: m.text })),
+      { role: "user", content: message || "Hello" }
+    ];
+    
+    const completion = await groq.chat.completions.create({
+      messages: messages,
+      model: "llama-3.3-70b-versatile",
+      temperature: 0.7,
+    });
+    
+    res.json({ reply: completion.choices[0].message.content, model: "llama" });
+    
+  } catch (err) {
+    console.error("API Error:", err);
+    res.status(500).json({ reply: "Error: " + err.message });
+  }
+});
    console.log("FileContext check:", fileContext ? "has fileContext" : "no fileContext", fileContext ? (fileContext.imageBase64 ? "has imageBase64" : "no imageBase64") : ""); 
     if (hasImage) {
       console.log("📸 Image detected → Using Gemini");
