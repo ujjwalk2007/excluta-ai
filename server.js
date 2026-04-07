@@ -59,7 +59,7 @@ LANGUAGE RULES:
 - Default language is ENGLISH.
 - If user writes in Hinglish (Roman Hindi like "tum kaun ho"), reply in Hinglish.
 - If user writes in Hindi (Devanagari like "तुम कौन हो"), reply in Hindi (Devanagari).
-- If user writes in English, reply in English.
+- If user writes in English, reply in English Only.
 
 ====================
 LIMITATIONS:
