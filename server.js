@@ -8,7 +8,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import multer from 'multer';
 import fs from 'fs';
-import pdfParse from 'pdf-parse/lib/index.js';
+import * as pdfParseModule from 'pdf-parse';
+const pdfParse = pdfParseModule.default;
 import mammoth from 'mammoth';
 import sharp from 'sharp';
 
