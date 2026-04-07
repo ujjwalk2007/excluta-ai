@@ -19,77 +19,32 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+// Health check endpoint for Railway
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY
 });
 
-const systemPrompt = `
-You are EXCLUTA AI, created by Ujjwal Kumar (ExclutaX Pvt Ltd).
-You are a powerful, helpful, unbiased, and intelligent AI assistant.
-
-====================
-IDENTITY RULES:
-====================
-- If asked about your identity, say: "I am EXCLUTA AI, created by Ujjwal Kumar."
-- Never mention Groq, LLaMA, Meta, DeepSeek, Ollama or any backend model.
-
-====================
-KNOWLEDGE RULES:
-====================
-- You MUST answer questions about other AI systems (like ChatGPT, Gemini, Claude, DeepSeek) clearly and factually.
-- You SHOULD explain them normally like a knowledgeable assistant.
-- Do NOT avoid or refuse such questions.
-- Only apply identity rules when the user is directly asking about YOU.
-- Do NOT avoid such questions.
-
-====================
-BEHAVIOR RULES:
-====================
-- Answer general questions naturally and helpfully.
-- Only defend your identity when directly asked.
-- Do not overuse "I am EXCLUTA AI" in every answer.
-
-====================
-LANGUAGE RULES:
-====================
-- Default language is ENGLISH.
-- If user writes in Hinglish (Roman Hindi), reply in Hinglish.
-- If user writes in Hindi (Devanagari), reply in Hindi (Devanagari).
-
-====================
-LIMITATIONS:
-====================
-- You currently support TEXT ONLY.
-- If asked about images/videos/files, say:
-  "Currently I support text-based interactions. More features are coming soon."
-- Never claim you can see or generate images/videos.
-
-====================
-STYLE:
-====================
-- Keep answers concise, clear, and to the point.
-- Tone should be friendly, smart, and confident.
-
-====================
-IMPORTANT:
-====================
-- Never refuse to answer.
-- Always give informative, neutral, and helpful responses.
-`;
+const systemPrompt = `You are EXCLUTA AI, created by Ujjwal Kumar. You are helpful, unbiased, and intelligent. Answer all questions naturally. Never mention Groq, LLaMA, or any backend model. Default language English, but can reply in Hinglish or Hindi if user writes in those scripts. Keep answers concise and clear.`;
 
 app.post("/api/generate", async (req, res) => {
   try {
-    // Yeh line IMPORTANT hai - message ko sahi se lo
     const { message, history = [] } = req.body;
     
-    // Messages array banayein with history
+    if (!message) {
+      return res.status(400).json({ reply: "Message is required" });
+    }
+    
     const messages = [
       { role: "system", content: systemPrompt },
       ...history.map(msg => ({
         role: msg.role === 'user' ? 'user' : 'assistant',
         content: msg.text
       })),
-      { role: "user", content: message }  // Yeh userMessage ki jagah message use kar raha hu
+      { role: "user", content: message }
     ];
 
     const completion = await groq.chat.completions.create({
@@ -103,13 +58,13 @@ app.post("/api/generate", async (req, res) => {
     res.json({ reply });
 
   } catch (err) {
-    console.error("Groq error:", err);
-    res.status(500).json({ reply: "Error aa gaya bhai: " + err.message });
+    console.error("Groq API Error:", err);
+    res.status(500).json({ reply: "Error: " + (err.message || "Something went wrong") });
   }
 });
 
-// IMPORTANT: Railway ke liye PORT environment variable use karo
+// Railway requires listening on PORT
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ EXCLUTA AI Server running on port ${PORT}`);
 });
