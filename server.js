@@ -164,10 +164,10 @@ app.post("/api/generate", async (req, res) => {
     
     // CHECK: Agar image hai → Gemini use kar
     const hasImage = fileContext && fileContext.imageBase64;
-    
+   console.log("FileContext check:", fileContext ? "has fileContext" : "no fileContext", fileContext ? (fileContext.imageBase64 ? "has imageBase64" : "no imageBase64") : ""); 
     if (hasImage) {
       console.log("📸 Image detected → Using Gemini");
-      
+      console.log("FileContext check:", fileContext ? "has fileContext" : "no fileContext", fileContext ? (fileContext.imageBase64 ? "has imageBase64" : "no imageBase64") : "");
       // Build prompt with system instruction and history
       let chatHistory = systemPrompt + "\n\n";
       for (const msg of history) {
@@ -175,7 +175,7 @@ app.post("/api/generate", async (req, res) => {
       }
       
       const userMessage = message || "Describe this image";
-      
+      console.log("Sending to Gemini with image length:", fileContext.imageBase64.length);
       const imageData = {
         inlineData: {
           data: fileContext.imageBase64,
