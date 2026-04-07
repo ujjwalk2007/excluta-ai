@@ -667,10 +667,13 @@
 
       try {
         const res = await fetch('/api/generate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: msg })
-        });
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ 
+    message: msg,
+    history: conversations[currentId].messages.slice(-10) // last 10 messages
+  })
+});
 
         const data = await res.json();
         removeThinking();

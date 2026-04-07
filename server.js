@@ -78,18 +78,22 @@ IMPORTANT:
 `;
 
 app.post("/api/generate", async (req, res) => {
-  const userMessage = req.body.message;
+  const userHistory = req.body.history || [];
+const messages = [
+  { role: "system", content: systemPrompt },
+  ...userHistory.map(m => ({
+    role: m.role === 'ai' ? 'assistant' : 'user',
+    content: m.text
+  })),
+  { role: "user", content: userMessage }
+];
 
-  try {
-    const completion = await groq.chat.completions.create({
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userMessage }
-      ],
-      model: "llama-3.3-70b-versatile",
-      temperature: 0.7,
-      max_tokens: 1024,
-    });
+const completion = await groq.chat.completions.create({
+  messages: messages,
+  model: "llama-3.3-70b-versatile",
+  temperature: 0.7,
+  max_tokens: 1024,
+});
 
     const reply = completion.choices[0]?.message?.content || "No response";
     res.json({ reply });
