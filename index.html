@@ -613,7 +613,7 @@
       renderSidebar();
 
       try {
-        const res = await fetch('http://localhost:3000/api/generate', {
+        const res = await fetch('https://excluta-ai-production.up.railway.app/api/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ message: msg })
