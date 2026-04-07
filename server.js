@@ -250,10 +250,22 @@ app.post("/api/generate", async (req, res) => {
         }
       };
       
-      const result = await geminiModel.generateContent([
-        chatHistory + "\nUser: " + userMessage,
-        imageData
-      ]);
+      const result = await geminiModel.generateContent({
+  contents: [
+    {
+      role: "user",
+      parts: [
+        { text: userMessage },
+        {
+          inlineData: {
+            mimeType: fileContext.mimeType || "image/png",
+            data: fileContext.imageBase64
+          }
+        }
+      ]
+    }
+  ]
+});
       
       const reply = result.response.text();
       return res.json({ reply, model: "gemini" });
