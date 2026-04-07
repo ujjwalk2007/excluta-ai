@@ -715,11 +715,20 @@
           const data = await res.json();
           
           if (data.success) {
-            currentFileContext = {
-              filename: data.filename,
-              extractedText: data.extractedText,
-              fileType: data.fileType
-            };
+    currentFileContext = {
+        filename: data.filename,
+        extractedText: data.extractedText,
+        fileType: data.fileType,
+        imageBase64: data.imageBase64,    // ← YEH LINE ADD KAR
+        mimeType: data.mimeType            // ← YEH LINE ADD KAR
+    };
+    
+    // Agar image hai toh extra info show karo
+    if (data.imageBase64) {
+        appendBubble(`🖼️ Image "${data.filename}" uploaded! Ask me about it.`, 'ai');
+    } else {
+        appendBubble(`📎 File "${data.filename}" uploaded! Ask me about it.`, 'ai');
+    }
             appendBubble(`📎 File "${data.filename}" uploaded! Ask me about it.`, 'ai');
           } else {
             appendBubble(`❌ Upload failed: ${data.error}`, 'ai');
