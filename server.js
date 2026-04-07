@@ -4,21 +4,21 @@ dotenv.config();
 import express from "express";
 import cors from "cors";
 import Groq from "groq-sdk";
-
-const app = express();
-app.use(express.json());
-app.use(cors());
 import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const app = express();
+app.use(express.json());
+app.use(cors());
 app.use(express.static(__dirname));
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
+
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY
 });
@@ -78,38 +78,38 @@ IMPORTANT:
 `;
 
 app.post("/api/generate", async (req, res) => {
-  const userHistory = req.body.history || [];
-const messages = [
-  { role: "system", content: systemPrompt },
-  ...userHistory.map(m => ({
-    role: m.role === 'ai' ? 'assistant' : 'user',
-    content: m.text
-  })),
-  { role: "user", content: userMessage }
-];
+  try {
+    // Yeh line IMPORTANT hai - message ko sahi se lo
+    const { message, history = [] } = req.body;
+    
+    // Messages array banayein with history
+    const messages = [
+      { role: "system", content: systemPrompt },
+      ...history.map(msg => ({
+        role: msg.role === 'user' ? 'user' : 'assistant',
+        content: msg.text
+      })),
+      { role: "user", content: message }  // Yeh userMessage ki jagah message use kar raha hu
+    ];
 
-const completion = await groq.chat.completions.create({
-  messages: messages,
-  model: "llama-3.3-70b-versatile",
-  temperature: 0.7,
-  max_tokens: 1024,
-});
+    const completion = await groq.chat.completions.create({
+      messages: messages,
+      model: "llama-3.3-70b-versatile",
+      temperature: 0.7,
+      max_tokens: 1024,
+    });
 
     const reply = completion.choices[0]?.message?.content || "No response";
     res.json({ reply });
 
   } catch (err) {
     console.error("Groq error:", err);
-    res.json({ reply: "Error aa gaya bhai: " + err.message });
+    res.status(500).json({ reply: "Error aa gaya bhai: " + err.message });
   }
 });
 
-const server = app.listen(3000, () => {
-  console.log("✅ EXCLUTA AI Server running on http://localhost:3000");
-});
-
-server.on("error", (err) => {
-  if (err.code === "EADDRINUSE") {
-    app.listen(3001, () => console.log("✅ Server running on http://localhost:3001"));
-  }
+// IMPORTANT: Railway ke liye PORT environment variable use karo
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`✅ EXCLUTA AI Server running on port ${PORT}`);
 });
