@@ -3,7 +3,7 @@ dotenv.config();
 
 import express from "express";
 import cors from "cors";
-import Groq from "groq-sdk";
+import { Groq } from "groq-sdk";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import path from 'path';
 import { fileURLToPath } from 'url';
