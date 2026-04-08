@@ -45,7 +45,6 @@
       z-index: 100;
     }
 
-    /* Mobile sidebar hidden by default */
     @media (max-width: 768px) {
       #sidebar {
         position: fixed;
@@ -214,7 +213,6 @@
       flex-shrink: 0;
     }
 
-    /* Hamburger button - mobile only */
     #menu-btn {
       display: none;
       background: none;
@@ -445,6 +443,32 @@
 
     #input::placeholder { color: var(--text-muted); }
 
+    /* Voice Button CSS */
+    .voice-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      width: 36px;
+      height: 36px;
+      cursor: pointer;
+      font-size: 18px;
+      transition: all 0.2s;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .voice-btn.recording {
+      background: #ff4444;
+      color: white;
+      animation: pulse 0.5s infinite;
+    }
+
+    .voice-btn:active {
+      transform: scale(0.95);
+    }
+
     #btn {
       width: 36px; height: 36px;
       background: linear-gradient(135deg, #4f8ef7, #7c5cfc);
@@ -521,10 +545,8 @@
 </head>
 <body>
 
-  <!-- Overlay for mobile sidebar -->
   <div id="overlay" onclick="closeSidebar()"></div>
 
-  <!-- SIDEBAR -->
   <div id="sidebar">
     <div class="sidebar-header">
       <div class="logo-row">
@@ -540,7 +562,6 @@
     <div class="sidebar-footer">Powered by Llama 3.3 70B</div>
   </div>
 
-  <!-- MAIN -->
   <div id="main">
     <header>
       <button id="menu-btn" onclick="toggleSidebar()">☰</button>
@@ -552,6 +573,7 @@
       <div class="welcome" id="welcome">
         <h2>Namaste! Main hoon EXCLUTA AI 👋</h2>
         <p>Kuch bhi pucho — math, coding, science, ya general knowledge.</p>
+        <p>🎤 Voice search bhi hai! Mic button dabao aur bolo.</p>
         <div class="welcome-chips">
           <div class="chip" onclick="quickSend('2x + 5 = 15, x kya hai?')">🔢 Math</div>
           <div class="chip" onclick="quickSend('Python mein for loop kaise likhte hain?')">💻 Coding</div>
@@ -564,6 +586,7 @@
     <div class="input-area">
       <div class="input-wrap">
         <textarea id="input" placeholder="Kuch bhi pucho..." rows="1"></textarea>
+        <button id="voice-btn" class="voice-btn">🎤</button>
         <label for="file-input" class="file-label" id="file-label">📎</label>
         <button id="btn">
           <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>
@@ -571,12 +594,11 @@
       </div>
       <input type="file" id="file-input" class="file-input" accept="image/*,.pdf,.doc,.docx,.txt"/>
       <div id="file-info" class="uploaded-file" style="display: none;"></div>
-      <div class="input-hint">Enter to send • Shift+Enter for new line</div>
+      <div class="input-hint">Enter to send • Shift+Enter for new line • 🎤 Voice search</div>
     </div>
   </div>
 
   <script>
-    // ===== SIDEBAR TOGGLE =====
     function toggleSidebar() {
       document.getElementById('sidebar').classList.toggle('open');
       document.getElementById('overlay').classList.toggle('show');
@@ -587,7 +609,6 @@
       document.getElementById('overlay').classList.remove('show');
     }
 
-    // ===== STATE =====
     let conversations = JSON.parse(localStorage.getItem('excluta_convos') || '{}');
     let currentId = null;
 
@@ -691,7 +712,6 @@
       if (t) t.remove();
     }
 
-    // File upload handling
     const fileInput = document.getElementById('file-input');
     const fileInfo = document.getElementById('file-info');
     let currentFileContext = null;
@@ -715,21 +735,19 @@
           const data = await res.json();
           
           if (data.success) {
-    currentFileContext = {
-        filename: data.filename,
-        extractedText: data.extractedText,
-        fileType: data.fileType,
-        imageBase64: data.imageBase64,    // ← YEH LINE ADD KAR
-        mimeType: data.mimeType            // ← YEH LINE ADD KAR
-    };
-    
-    // Agar image hai toh extra info show karo
-    if (data.imageBase64) {
-        appendBubble(`🖼️ Image "${data.filename}" uploaded! Ask me about it.`, 'ai');
-    } else {
-        appendBubble(`📎 File "${data.filename}" uploaded! Ask me about it.`, 'ai');
-    }
-            appendBubble(`📎 File "${data.filename}" uploaded! Ask me about it.`, 'ai');
+            currentFileContext = {
+              filename: data.filename,
+              extractedText: data.extractedText,
+              fileType: data.fileType,
+              imageBase64: data.imageBase64,
+              mimeType: data.mimeType
+            };
+            
+            if (data.imageBase64) {
+              appendBubble(`🖼️ Image "${data.filename}" uploaded! Ask me about it.`, 'ai');
+            } else {
+              appendBubble(`📎 File "${data.filename}" uploaded! Ask me about it.`, 'ai');
+            }
           } else {
             appendBubble(`❌ Upload failed: ${data.error}`, 'ai');
           }
@@ -805,6 +823,83 @@
     function quickSend(text) {
       inputEl.value = text;
       sendMessage();
+    }
+
+    // ============ VOICE SEARCH ============
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let isRecording = false;
+    const voiceBtn = document.getElementById('voice-btn');
+    
+    if (voiceBtn) {
+      voiceBtn.addEventListener('click', async () => {
+        if (isRecording) {
+          if (mediaRecorder && mediaRecorder.state === 'recording') {
+            mediaRecorder.stop();
+          }
+        } else {
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            
+            mediaRecorder = new MediaRecorder(stream);
+            audioChunks = [];
+            
+            mediaRecorder.ondataavailable = (event) => {
+              if (event.data.size > 0) {
+                audioChunks.push(event.data);
+              }
+            };
+            
+            mediaRecorder.onstop = async () => {
+              stream.getTracks().forEach(track => track.stop());
+              
+              const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+              voiceBtn.textContent = '⏳';
+              voiceBtn.disabled = true;
+              
+              try {
+                const formData = new FormData();
+                formData.append('audio', audioBlob, 'recording.webm');
+                
+                const response = await fetch('/api/transcribe', {
+                  method: 'POST',
+                  body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.text) {
+                  inputEl.value = data.text;
+                  sendMessage();
+                } else if (data.error) {
+                  appendBubble(`🎤 Error: ${data.error}`, 'ai');
+                }
+              } catch (err) {
+                appendBubble(`🎤 Voice failed: ${err.message}`, 'ai');
+              } finally {
+                voiceBtn.textContent = '🎤';
+                voiceBtn.disabled = false;
+                voiceBtn.classList.remove('recording');
+                isRecording = false;
+              }
+            };
+            
+            mediaRecorder.start();
+            isRecording = true;
+            voiceBtn.classList.add('recording');
+            voiceBtn.textContent = '🔴';
+            
+            setTimeout(() => {
+              if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+              }
+            }, 10000);
+            
+          } catch (err) {
+            appendBubble(`🎤 Microphone access denied. Please check permissions.`, 'ai');
+          }
+        }
+      });
     }
 
     document.getElementById('new-chat-btn').addEventListener('click', newChat);

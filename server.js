@@ -308,6 +308,45 @@ app.post("/api/generate", async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
+// TEST ENDPOINT - Gemini vision test
+app.post("/api/test-vision", async (req, res) => {
+  try {
+    const { imageBase64, mimeType } = req.body;
+    
+    if (!imageBase64) {
+      return res.json({ reply: "No image provided" });
+    }
+    
+    console.log("TEST: Image length:", imageBase64.length);
+    
+    const testModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    
+    const result = await testModel.generateContent({
+      contents: [
+        {
+          role: "user",
+          parts: [
+            { text: "What do you see in this image? Tell me in one line." },
+            {
+              inlineData: {
+                mimeType: mimeType || "image/png",
+                data: imageBase64
+              }
+            }
+          ]
+        }
+      ]
+    });
+    
+    const reply = result.response.text();
+    console.log("TEST REPLY:", reply);
+    res.json({ reply: "✅ Gemini worked! It says: " + reply });
+    
+  } catch (err) {
+    console.error("TEST ERROR:", err);
+    res.json({ reply: "❌ Error: " + err.message });
+  }
+});
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ EXCLUTA AI Running`);
   console.log(`   📸 Images → Gemini 2.0 Flash`);
